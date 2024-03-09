@@ -1,0 +1,153 @@
+(function () {
+  'use strict';
+
+  function ownKeys(e, r) {
+    var t = Object.keys(e);
+    if (Object.getOwnPropertySymbols) {
+      var o = Object.getOwnPropertySymbols(e);
+      r && (o = o.filter(function (r) {
+        return Object.getOwnPropertyDescriptor(e, r).enumerable;
+      })), t.push.apply(t, o);
+    }
+    return t;
+  }
+  function _objectSpread2(e) {
+    for (var r = 1; r < arguments.length; r++) {
+      var t = null != arguments[r] ? arguments[r] : {};
+      r % 2 ? ownKeys(Object(t), !0).forEach(function (r) {
+        _defineProperty(e, r, t[r]);
+      }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) {
+        Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+      });
+    }
+    return e;
+  }
+  function _toPrimitive(t, r) {
+    if ("object" != typeof t || !t) return t;
+    var e = t[Symbol.toPrimitive];
+    if (void 0 !== e) {
+      var i = e.call(t, r || "default");
+      if ("object" != typeof i) return i;
+      throw new TypeError("@@toPrimitive must return a primitive value.");
+    }
+    return ("string" === r ? String : Number)(t);
+  }
+  function _toPropertyKey(t) {
+    var i = _toPrimitive(t, "string");
+    return "symbol" == typeof i ? i : String(i);
+  }
+  function _defineProperty(obj, key, value) {
+    key = _toPropertyKey(key);
+    if (key in obj) {
+      Object.defineProperty(obj, key, {
+        value: value,
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
+    } else {
+      obj[key] = value;
+    }
+    return obj;
+  }
+
+  var _document = document,
+    currentScript = _document.currentScript;
+  var PUMBLE_DEFAULT_WIDGET_SRC = 'https://widget.pumble.com';
+  var PUMBLE_DEFAULT_ZINDEX = 999995;
+  var PUMBLE_ALLOW_ATTRIBUTES = 'clipboard-write';
+  var origin = currentScript.dataset.widgetSrc || PUMBLE_DEFAULT_WIDGET_SRC;
+  var _theme = 'light';
+  var _token;
+  var _ifr;
+  var iframeElementId = 'pumbleWidgetIFrame';
+  function handlePostMessge(event) {
+    var _event$data, _event$data2, _event$data3;
+    if (event.origin !== origin || event.source !== _ifr.contentWindow) {
+      return;
+    }
+    var payload = (_event$data = event.data) === null || _event$data === void 0 ? void 0 : _event$data.payload;
+    if (((_event$data2 = event.data) === null || _event$data2 === void 0 ? void 0 : _event$data2.type) === 'RESTYLE' && payload) {
+      Object.keys(payload).forEach(function (key) {
+        _ifr.style[key] = payload[key];
+      });
+      return;
+    }
+    if (((_event$data3 = event.data) === null || _event$data3 === void 0 ? void 0 : _event$data3.type) === 'UNMOUNT') {
+      window.$Pmbl.unmount();
+    }
+  }
+  function sendPostMessage(data) {
+    if (!_ifr) {
+      return;
+    }
+    _ifr.contentWindow.postMessage(_objectSpread2({}, data), origin);
+  }
+  window.$Pmbl = function () {
+    var insertStyleElement = function insertStyleElement() {
+      var styleElement = document.createElement('style');
+      styleElement.innerHTML = "\n\t\t\t#".concat(iframeElementId, " {\n\t\t\t\tmargin: 0;\n\t\t\t\tborder: none;\n\t\t\t\toutline: none;\n\t\t\t\tpadding: 0;\n\t\t\t\tdisplay: none;\n\t\t\t\ttransition: box-shadow 0.12s ease;\n\t\t\t}\n\t\t").replace(/\n/g, '').replace(/\s+/g, ' ');
+      document.head.appendChild(styleElement);
+    };
+    return {
+      mount: function mount() {
+        var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+          theme = _ref.theme,
+          token = _ref.token,
+          _ref$zindex = _ref.zindex,
+          zindex = _ref$zindex === void 0 ? PUMBLE_DEFAULT_ZINDEX : _ref$zindex;
+        if (_ifr) return;
+        insertStyleElement();
+        _ifr = document.createElement('iframe');
+        var ifrSrc = new URL(origin);
+        var searchParams = new URLSearchParams();
+        searchParams.append('token', token || _token);
+        searchParams.append('theme', theme || _theme);
+        searchParams.append('zindex', zindex);
+        searchParams.append('origin', window.location.origin);
+        ifrSrc.search = searchParams.toString();
+        _ifr.setAttribute('src', ifrSrc);
+        _ifr.setAttribute('id', iframeElementId);
+        _ifr.setAttribute('allow', PUMBLE_ALLOW_ATTRIBUTES);
+        document.body.appendChild(_ifr);
+        window.addEventListener('message', handlePostMessge);
+      },
+      unmount: function unmount() {
+        if (!_ifr) return;
+        window.removeEventListener('message', handlePostMessge);
+        _ifr.remove();
+        _ifr = null;
+      },
+      setTheme: function setTheme() {
+        var theme = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+        if (!_ifr) return;
+        sendPostMessage({
+          type: 'SET_THEME',
+          theme: theme
+        });
+      },
+      setOpen: function setOpen(isOpen) {
+        if (!_ifr || typeof isOpen === 'undefined') {
+          return;
+        }
+        sendPostMessage({
+          type: 'SET_OPEN',
+          isOpen: Boolean(isOpen)
+        });
+      }
+    };
+  }();
+  if (currentScript.dataset.token) {
+    var _currentScript$datase = currentScript.dataset,
+      theme = _currentScript$datase.theme,
+      token = _currentScript$datase.token,
+      zindex = _currentScript$datase.zindex;
+    _token = token;
+    window.$Pmbl.mount({
+      theme: theme,
+      token: token,
+      zindex: zindex
+    });
+  }
+
+}());
